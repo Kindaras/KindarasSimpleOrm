@@ -5,9 +5,11 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import java.io.ByteArrayInputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -48,6 +50,10 @@ public class DbHelper {
             return null;
     }
 
+    public void createTable(Class<?> insertedClass) {
+        db.execSQL(DatabaseQueryGenerator.getTableQueryByClass(insertedClass));
+    }
+
     public void insertInto(Class<?> insertedClass, Object obj) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         if (obj.getClass() == insertedClass) {
             String query = "INSERT INTO " + insertedClass.getSimpleName() + " (";
@@ -63,17 +69,18 @@ public class DbHelper {
             query += ")";
             db.beginTransactionNonExclusive();
             SQLiteStatement stmt = db.compileStatement(query);
-            Map<String, String> getters = new HashMap<>();
-            for (Method m : insertedClass.getMethods()) {
-                if (m.getName().startsWith("get") || m.getName().startsWith("is"))
-                    getters.put(m.getName().replace("get", "").replace("is", "").toLowerCase(), m.getName());
-            }
             for (int x = 0; x < insertedClass.getDeclaredFields().length; x++) {
-                if (insertedClass.getDeclaredFields()[x].getType().getSimpleName().equalsIgnoreCase("boolean")) {
-                    stmt.bindString(x + 1, (Boolean)insertedClass.getMethod(getters.get(insertedClass.getDeclaredFields()[x].getName().toLowerCase())).invoke(obj) ? "1" : "0");
-                } else {
-                    stmt.bindString(x + 1, insertedClass.getMethod(getters.get(insertedClass.getDeclaredFields()[x].getName().toLowerCase())).invoke(obj).toString());
-                }
+                Field f = insertedClass.getDeclaredFields()[x];
+                f.setAccessible(true);
+                if (f.getType().getSimpleName().equalsIgnoreCase("boolean"))
+                    stmt.bindString(x+1, (Boolean)f.get(obj) ? "1" : "0");
+                else if (f.getType().getSimpleName().equals("byte[]"))
+                    stmt.bindBlob(x+1, (byte[])f.get(obj));
+                else if (f.getType().getSimpleName().equals("Byte[]"))
+                    stmt.bindBlob(x+1, toPrimitives((Byte[])f.get(obj)));
+                else
+                    stmt.bindString(x+1, f.get(obj).toString());
+                f.setAccessible(false);
             }
             stmt.execute();
             stmt.close();
@@ -88,23 +95,27 @@ public class DbHelper {
         List<T> _return = new ArrayList<>();
         String query = "SELECT * FROM " + returnClass.getSimpleName();
         Cursor c = rawQuery(query);
-        Constructor<?>[] constructors = returnClass.getConstructors();
-        Constructor<T> constructor = null;
-        for (int x = 0; x < constructors.length; x++) {
-            if (constructors[x].getDeclaredAnnotation(com.kindaras.objectdatabase.Constructor.class) != null)
-                constructor = (Constructor<T>) constructors[x];
-        }
-        if (c.moveToFirst() && constructor != null) {
+        if (c.moveToFirst()) {
             do {
-                Object[] array = new Object[constructor.getParameterCount()];
-                for (int x = 0; x < array.length; x++) {
-                    if (returnClass.getDeclaredField(constructor.getAnnotation(com.kindaras.objectdatabase.Constructor.class).parameters()[x]).getType().getSimpleName().equalsIgnoreCase("boolean")) {
-                            array[x] = c.getInt(c.getColumnIndex(constructor.getAnnotation(com.kindaras.objectdatabase.Constructor.class).parameters()[x])) > 0 ? true : false;
-                    } else {
-                        array[x] = getObject(c.getColumnIndex(constructor.getAnnotation(com.kindaras.objectdatabase.Constructor.class).parameters()[x]), c);
+                T add = returnClass.newInstance();
+                for (int x = 0; x < returnClass.getDeclaredFields().length; x++) {
+                    Field f = returnClass.getDeclaredFields()[x];
+                    boolean acc = f.isAccessible();
+                    if (!acc)
+                        f.setAccessible(true);
+                    if (f.getType().getSimpleName().equalsIgnoreCase("boolean"))
+                        f.set(add, c.getInt(c.getColumnIndex(f.getName())) > 0);
+                    else if (f.getType().getSimpleName().equalsIgnoreCase("byte"))
+                        f.set(add, (byte)c.getInt(c.getColumnIndex(f.getName())));
+                    else {
+                        if (f.getType().getSimpleName().equals("Byte[]"))
+                            f.set(add, toObjects((byte[])getObject(c.getColumnIndex(f.getName()), c)));
+                        else
+                            f.set(add, getObject(c.getColumnIndex(f.getName()), c));
                     }
+                    if (!acc)
+                        f.setAccessible(false);
                 }
-                T add = constructor.newInstance(array);
                 _return.add(add);
             } while (c.moveToNext());
         }
@@ -127,6 +138,22 @@ public class DbHelper {
             default:
                 return null;
         }
+    }
+
+    private byte[] toPrimitives(Byte[] oBytes)
+    {
+        byte[] bytes = new byte[oBytes.length];
+        for(int i = 0; i < oBytes.length; i++){
+            bytes[i] = oBytes[i];
+        }
+        return bytes;
+    }
+
+    Byte[] toObjects(byte[] bytesPrim) {
+        Byte[] bytes = new Byte[bytesPrim.length];
+        int i = 0;
+        for (byte b : bytesPrim) bytes[i++] = b;
+        return bytes;
     }
 
     public void close() {
