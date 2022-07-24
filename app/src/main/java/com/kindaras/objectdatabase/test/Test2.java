@@ -7,7 +7,7 @@ public class Test2 {
     @PrimaryKey
     private int id;
     private String test;
-    private Integer x;
+    private float x;
 
     public int getId() {
         return id;
@@ -25,11 +25,11 @@ public class Test2 {
         this.test = test;
     }
 
-    public Integer getX() {
+    public float getX() {
         return x;
     }
 
-    public void setX(Integer x) {
+    public void setX(float x) {
         this.x = x;
     }
 }
