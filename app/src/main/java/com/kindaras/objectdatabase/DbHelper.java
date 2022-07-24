@@ -68,6 +68,8 @@ public class DbHelper {
             if (!t.equals("String") &&
                     !t.equals("int") &&
                     !t.equals("Integer") &&
+                    !t.equalsIgnoreCase("double") &&
+                    !t.equalsIgnoreCase("float") &&
                     !t.equalsIgnoreCase("boolean") &&
                     !t.equalsIgnoreCase("byte") &&
                     !t.equalsIgnoreCase("byte[]")) {
@@ -196,6 +198,8 @@ public class DbHelper {
                         f.set(_return, c.getInt(c.getColumnIndex(f.getName())) > 0);
                     else if (f.getType().getSimpleName().equalsIgnoreCase("byte"))
                         f.set(_return, (byte) c.getInt(c.getColumnIndex(f.getName())));
+                    else if (f.getType().getSimpleName().equalsIgnoreCase("double"))
+                        f.set(_return, c.getDouble(c.getColumnIndex(f.getName())));
                     else {
                         if (f.getType().getSimpleName().equals("Byte[]"))
                             f.set(_return, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));
@@ -241,6 +245,8 @@ public class DbHelper {
                             f.set(add, c.getInt(c.getColumnIndex(f.getName())) > 0);
                         else if (f.getType().getSimpleName().equalsIgnoreCase("byte"))
                             f.set(add, (byte) c.getInt(c.getColumnIndex(f.getName())));
+                        else if (f.getType().getSimpleName().equalsIgnoreCase("double"))
+                            f.set(_return, c.getDouble(c.getColumnIndex(f.getName())));
                         else {
                             if (f.getType().getSimpleName().equals("Byte[]"))
                                 f.set(add, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));

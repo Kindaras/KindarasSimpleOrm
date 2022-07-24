@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
         Test2 tt = new Test2();
         tt.setId(1);
         tt.setTest("yay");
-        tt.setX(1);
+        tt.setX(1.9878f);
         t.setTest(tt);
         DbHelper db = DbHelper.getDb(this, "test.db", 1);
         try {

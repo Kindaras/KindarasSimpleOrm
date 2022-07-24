@@ -72,6 +72,8 @@ public class DatabaseQueryGenerator {
             return "integer";
         if (type.getSimpleName().equalsIgnoreCase("byte[]"))
             return "blob";
+        if (type.getSimpleName().equalsIgnoreCase("double") || type.getSimpleName().equalsIgnoreCase("float"))
+            return "real";
         else
             return "text";
     }
