@@ -3,17 +3,26 @@ package com.kindaras.objectdatabase;
 import android.util.Log;
 
 import java.lang.reflect.Field;
+import java.sql.SQLException;
 
 public class DatabaseQueryGenerator {
 
-    public static String getTableQueryByClass(Class<?> obj) {
+    public static String getTableQueryByClass(Class<?> obj) throws SQLException {
         StringBuilder query = new StringBuilder();
         query.append("CREATE TABLE IF NOT EXISTS ");
         query.append(obj.getSimpleName());
         query.append(" (");
         for (Field field : obj.getDeclaredFields()) {
-            query.append(getCompleteField(field));
-            query.append(",");
+            if (field.getDeclaredAnnotation(Ignored.class) == null) {
+                query.append(getCompleteField(field));
+                if (field.getDeclaredAnnotation(PrimaryKey.class) != null)
+                    query.append(" PRIMARY KEY NOT NULL");
+                if (field.getDeclaredAnnotation(AutoIncrement.class) != null && (!field.getType().getSimpleName().equals("int") && !field.getType().getSimpleName().equals("Integer")))
+                    throw new SQLException("Column not INTEGER can't be AUTOINCREMENT");
+                if (field.getDeclaredAnnotation(AutoIncrement.class) != null && field.getDeclaredAnnotation(PrimaryKey.class) == null)
+                    throw new SQLException("Column not PRIMARY KEY can't be AUTOINCREMENT");
+                query.append(",");
+            }
         }
         query.delete(query.length()-1, query.length());
         query.append(");");
@@ -21,16 +30,7 @@ public class DatabaseQueryGenerator {
     }
 
     private static String getCompleteField(Field field) {
-        return getSqlFieldName(field) + " " + getSqlType(field.getType());
-    }
-
-    private static String getSqlFieldName(Field field) {
-        try {
-            field.getType().getField("id");
-            return "id" + field.getName();
-        } catch (NoSuchFieldException e) {
-            return field.getName();
-        }
+        return field.getName() + " " + getSqlType(field.getType());
     }
 
     private static String getSqlType(Class<?> type) {
@@ -47,23 +47,33 @@ public class DatabaseQueryGenerator {
             else if (type.getMethods()[0].getReturnType().getSimpleName().equalsIgnoreCase("byte[]"))
                 return "blob";
         } else {
-            try {
-                type.getField("id");
-                return "int";
-            } catch (NoSuchFieldException e) {
-                if (type.getSimpleName().equals("Integer") || type.getSimpleName().equals("int"))
-                    return "integer";
-                if (type.getSimpleName().equals("String"))
-                    return "text";
-                if (type.getSimpleName().equalsIgnoreCase("boolean"))
-                    return "integer";
-                if (type.getSimpleName().equalsIgnoreCase("byte"))
-                    return "integer";
-                if (type.getSimpleName().equalsIgnoreCase("byte[]"))
-                    return "blob";
+            if (!type.isPrimitive()) {
+                for (Field f : type.getDeclaredFields()) {
+                    if (f.isAnnotationPresent(PrimaryKey.class)) {
+                        return getSqlTypeText(f.getType());
+                    }
+                }
+                return getSqlTypeText(type);
+            } else {
+                return getSqlTypeText(type);
             }
         }
         return null;
+    }
+
+    private static String getSqlTypeText(Class<?> type) {
+        if (type.getSimpleName().equals("Integer") || type.getSimpleName().equals("int"))
+            return "integer";
+        if (type.getSimpleName().equals("String"))
+            return "text";
+        if (type.getSimpleName().equalsIgnoreCase("boolean"))
+            return "integer";
+        if (type.getSimpleName().equalsIgnoreCase("byte"))
+            return "integer";
+        if (type.getSimpleName().equalsIgnoreCase("byte[]"))
+            return "blob";
+        else
+            return "text";
     }
 
 }

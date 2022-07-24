@@ -7,8 +7,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import androidx.annotation.Nullable;
 
 class Database extends SQLiteOpenHelper {
-    protected Database(@Nullable Context context) {
-        super(context, "telarosa-db.sqlite", null, 1);
+    protected Database(@Nullable Context context, String name, int version) {
+        super(context, name, null, version);
     }
 
     @Override
