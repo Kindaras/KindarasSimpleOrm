@@ -16,6 +16,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,6 +70,8 @@ public class DbHelper {
             if (!t.equals("String") &&
                     !t.equals("int") &&
                     !t.equals("Integer") &&
+                    !t.equals("LocalDate") &&
+                    !t.equals("LocalDateTime") &&
                     !t.equalsIgnoreCase("double") &&
                     !t.equalsIgnoreCase("float") &&
                     !t.equalsIgnoreCase("boolean") &&
@@ -200,6 +204,10 @@ public class DbHelper {
                         f.set(_return, (byte) c.getInt(c.getColumnIndex(f.getName())));
                     else if (f.getType().getSimpleName().equalsIgnoreCase("double"))
                         f.set(_return, c.getDouble(c.getColumnIndex(f.getName())));
+                    else if (f.getType().getSimpleName().equals("LocalDate"))
+                        f.set(_return, LocalDate.parse(c.getString(c.getColumnIndex(f.getName()))));
+                    else if (f.getType().getSimpleName().equals("LocalDateTime"))
+                        f.set(_return, LocalDateTime.parse(c.getString(c.getColumnIndex(f.getName()))));
                     else {
                         if (f.getType().getSimpleName().equals("Byte[]"))
                             f.set(_return, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));
@@ -246,7 +254,11 @@ public class DbHelper {
                         else if (f.getType().getSimpleName().equalsIgnoreCase("byte"))
                             f.set(add, (byte) c.getInt(c.getColumnIndex(f.getName())));
                         else if (f.getType().getSimpleName().equalsIgnoreCase("double"))
-                            f.set(_return, c.getDouble(c.getColumnIndex(f.getName())));
+                            f.set(add, c.getDouble(c.getColumnIndex(f.getName())));
+                        else if (f.getType().getSimpleName().equals("LocalDate"))
+                            f.set(add, LocalDate.parse(c.getString(c.getColumnIndex(f.getName()))));
+                        else if (f.getType().getSimpleName().equals("LocalDateTime"))
+                            f.set(add, LocalDateTime.parse(c.getString(c.getColumnIndex(f.getName()))));
                         else {
                             if (f.getType().getSimpleName().equals("Byte[]"))
                                 f.set(add, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));

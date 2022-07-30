@@ -18,6 +18,8 @@ public class TestObj {
     private Byte bb;
     private Byte[] bArray;
     private Test2 test;
+    private LocalDate date;
+    private LocalDateTime dateTime;
 
     public int getId() {
         return id;
@@ -73,5 +75,21 @@ public class TestObj {
 
     public void setTest(Test2 test) {
         this.test = test;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
+    public LocalDateTime getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(LocalDateTime dateTime) {
+        this.dateTime = dateTime;
     }
 }
