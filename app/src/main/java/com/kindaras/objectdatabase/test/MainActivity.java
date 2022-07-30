@@ -28,6 +28,8 @@ public class MainActivity extends Activity {
         t.setaBoolean(true);
         t.setBb((byte)0xba);
         t.setbArray(new Byte[]{(byte)0xbb, (byte)0xac});
+        t.setDate(LocalDate.now());
+        t.setDateTime(LocalDateTime.now());
         Test2 tt = new Test2();
         tt.setId(1);
         tt.setTest("yay");

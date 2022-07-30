@@ -74,6 +74,10 @@ public class DatabaseQueryGenerator {
             return "blob";
         if (type.getSimpleName().equalsIgnoreCase("double") || type.getSimpleName().equalsIgnoreCase("float"))
             return "real";
+        if (type.getSimpleName().equalsIgnoreCase("LocalDate"))
+            return "date";
+        if (type.getSimpleName().equalsIgnoreCase("LocalDateTime"))
+            return "datetime";
         else
             return "text";
     }
