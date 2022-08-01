@@ -16,9 +16,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +47,7 @@ public class DbHelper {
 
     public static DbHelper getDb(Context context, String name, int version) {
         if (dbHelper == null) {
-            dbHelper = new DbHelper(context, name, version);
+            dbHelper = new DbHelper(context.getApplicationContext(), name, version);
         }
         return dbHelper;
     }
@@ -93,7 +96,100 @@ public class DbHelper {
         tables.add(insertedClass.getSimpleName());
     }
 
-    public void insertInto(Class<?> insertedClass, Object obj) throws IllegalAccessException, java.sql.SQLException {
+    public <T> void multiInsert(List<T> array) throws java.sql.SQLException, IllegalAccessException {
+        multiInsert((T[]) array.toArray());
+    }
+
+    public <T> void multiInsert(T[] array) throws java.sql.SQLException, IllegalAccessException {
+        if (array.length == 0)
+            return;
+        Class<?> insertedClass = array[0].getClass();
+        if (!tables.contains(insertedClass.getSimpleName()))
+            createTable(insertedClass);
+        if (array[0].getClass() == insertedClass) {
+            String query = "INSERT INTO " + insertedClass.getSimpleName() + " (";
+            for (Field field : insertedClass.getDeclaredFields()) {
+                if (!field.isAnnotationPresent(AutoIncrement.class) &&
+                        !field.isAnnotationPresent(Ignored.class))
+                    query += field.getName() + ",";
+            }
+            query = query.substring(0, query.length() - 1);
+            query += ") VALUES (";
+            for (int x = 0; x < insertedClass.getDeclaredFields().length; x++) {
+                if (!insertedClass.getDeclaredFields()[x].isAnnotationPresent(AutoIncrement.class) &&
+                        !insertedClass.getDeclaredFields()[x].isAnnotationPresent(Ignored.class))
+                    query += "?,";
+            }
+            query = query.substring(0, query.length() - 1);
+            query += ")";
+            db.beginTransactionNonExclusive();
+            SQLiteStatement stmt = db.compileStatement(query);
+            for (T obj : array) {
+                int x = 0;
+                for (Field f : insertedClass.getDeclaredFields()) {
+                    if (!f.isAnnotationPresent(AutoIncrement.class) &&
+                            !f.isAnnotationPresent(Ignored.class)) {
+                        x++;
+                        f.setAccessible(true);
+                        if (f.getType().getSimpleName().equalsIgnoreCase("boolean"))
+                            stmt.bindString(x, (Boolean) f.get(obj) ? "1" : "0");
+                        else if (f.getType().getSimpleName().equals("byte[]"))
+                            stmt.bindBlob(x, (byte[]) f.get(obj));
+                        else if (f.getType().getSimpleName().equals("Byte[]")) {
+                            byte[] bb = toPrimitives((Byte[]) f.get(obj));
+                            if (bb != null)
+                                stmt.bindBlob(x, bb);
+                            else
+                                stmt.bindNull(x);
+                        } else {
+                            if (tables.contains(f.getType().getSimpleName())) {
+                                for (Field ff : f.getType().getDeclaredFields()) {
+                                    if (ff.isAnnotationPresent(PrimaryKey.class)) {
+                                        boolean isAccessible = ff.isAccessible();
+                                        if (!isAccessible)
+                                            ff.setAccessible(true);
+                                        if (f.get(obj) != null) {
+                                            if (!checkExistance(f.get(obj)))
+                                                throw new SQLException("Row don't exist in such table");
+                                            stmt.bindString(x, ff.get(f.get(obj)).toString());
+                                        } else {
+                                            stmt.bindString(x, "null");
+                                        }
+                                        if (!isAccessible)
+                                            ff.setAccessible(false);
+                                        break;
+                                    }
+                                }
+                            } else {
+                                if (f.get(obj) != null)
+                                    stmt.bindString(x, f.get(obj).toString());
+                                else
+                                    stmt.bindNull(x);
+                            }
+                        }
+                        f.setAccessible(false);
+                    }
+                }
+                long id = stmt.executeInsert();
+                for (Field f : insertedClass.getDeclaredFields()) {
+                    if (f.isAnnotationPresent(PrimaryKey.class) && (f.getType().getSimpleName().equalsIgnoreCase("float") || f.getType().getSimpleName().equals("int") || f.getType().getSimpleName().equals("Integer"))) {
+                        boolean isAccessible = f.isAccessible();
+                        if (!isAccessible)
+                            f.setAccessible(true);
+                        f.set(obj, Integer.parseInt(id + ""));f.setAccessible(isAccessible);
+                    }
+                }
+                stmt.clearBindings();
+            }
+            stmt.close();
+            db.setTransactionSuccessful();
+            db.endTransaction();
+        } else
+            throw new IllegalAccessException("Class type error!");
+    }
+
+    public void insertInto(Object obj) throws IllegalAccessException, java.sql.SQLException {
+        Class<?> insertedClass = obj.getClass();
         if (!tables.contains(insertedClass.getSimpleName()))
             createTable(insertedClass);
         if (obj.getClass() == insertedClass) {
@@ -119,29 +215,32 @@ public class DbHelper {
                 if (!f.isAnnotationPresent(AutoIncrement.class) &&
                         !f.isAnnotationPresent(Ignored.class)) {
                     x++;
+                    boolean isAccessible = f.isAccessible();
                     f.setAccessible(true);
                     if (f.getType().getSimpleName().equalsIgnoreCase("boolean"))
                         stmt.bindString(x, (Boolean) f.get(obj) ? "1" : "0");
                     else if (f.getType().getSimpleName().equals("byte[]"))
                         stmt.bindBlob(x, (byte[]) f.get(obj));
-                    else if (f.getType().getSimpleName().equals("Byte[]"))
-                        stmt.bindBlob(x, toPrimitives((Byte[]) f.get(obj)));
-                    else {
+                    else if (f.getType().getSimpleName().equals("Byte[]")) {
+                        byte[] bb = toPrimitives((Byte[]) f.get(obj));
+                        if (bb != null)
+                            stmt.bindBlob(x, bb);
+                        else
+                            stmt.bindNull(x);
+                    } else {
                         if (tables.contains(f.getType().getSimpleName())) {
                             for (Field ff : f.getType().getDeclaredFields()) {
                                 if (ff.isAnnotationPresent(PrimaryKey.class)) {
-                                    boolean isAccessible = ff.isAccessible();
-                                    if (!isAccessible)
-                                        ff.setAccessible(true);
+                                    boolean isAccessible2 = ff.isAccessible();
+                                    ff.setAccessible(true);
                                     if (f.get(obj) != null) {
-                                        if (!checkExistance(f.getType(), f.get(obj)))
+                                        if (!checkExistance(f.get(obj)))
                                             throw new SQLException("Row don't exist in such table");
                                         stmt.bindString(x, ff.get(f.get(obj)).toString());
                                     } else {
                                         stmt.bindString(x, "null");
                                     }
-                                    if (!isAccessible)
-                                        ff.setAccessible(false);
+                                    ff.setAccessible(isAccessible2);
                                     break;
                                 }
                             }
@@ -152,10 +251,18 @@ public class DbHelper {
                                 stmt.bindNull(x);
                         }
                     }
-                    f.setAccessible(false);
+                    f.setAccessible(isAccessible);
                 }
             }
-            stmt.execute();
+            long id = stmt.executeInsert();
+            for (Field f : insertedClass.getDeclaredFields()) {
+                if (f.isAnnotationPresent(PrimaryKey.class) && (f.getType().getSimpleName().equalsIgnoreCase("float") || f.getType().getSimpleName().equals("int") || f.getType().getSimpleName().equals("Integer"))) {
+                    boolean isAccessible = f.isAccessible();
+                    if (!isAccessible)
+                        f.setAccessible(true);
+                    f.set(obj, Integer.parseInt(id + ""));f.setAccessible(isAccessible);
+                }
+            }
             stmt.close();
             db.setTransactionSuccessful();
             db.endTransaction();
@@ -204,11 +311,15 @@ public class DbHelper {
                         f.set(_return, (byte) c.getInt(c.getColumnIndex(f.getName())));
                     else if (f.getType().getSimpleName().equalsIgnoreCase("double"))
                         f.set(_return, c.getDouble(c.getColumnIndex(f.getName())));
-                    else if (f.getType().getSimpleName().equals("LocalDate"))
-                        f.set(_return, LocalDate.parse(c.getString(c.getColumnIndex(f.getName()))));
-                    else if (f.getType().getSimpleName().equals("LocalDateTime"))
-                        f.set(_return, LocalDateTime.parse(c.getString(c.getColumnIndex(f.getName()))));
-                    else {
+                    else if (f.getType().getSimpleName().equals("LocalDate")) {
+                        String data = c.getString(c.getColumnIndex(f.getName()));
+                        if (data != null)
+                            f.set(_return, LocalDate.parse(data));
+                    } else if (f.getType().getSimpleName().equals("LocalDateTime")) {
+                        String data = c.getString(c.getColumnIndex(f.getName()));
+                        if (data != null)
+                            f.set(_return, LocalDateTime.parse(data));
+                    } else {
                         if (f.getType().getSimpleName().equals("Byte[]"))
                             f.set(_return, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));
                         else {
@@ -234,12 +345,25 @@ public class DbHelper {
     }
 
     @SuppressLint("Range")
-    public <T> List<T> getList(Class<T> returnClass) throws IllegalAccessException, InstantiationException {
+    public <T> List<T> getList(Class<T> returnClass, String whereClause, String orderBy) throws IllegalAccessException, InstantiationException {
         if (!tables.contains(returnClass.getSimpleName())) {
             throw new SQLException("No such table!");
         }
         List<T> _return = new ArrayList<>();
         String query = "SELECT * FROM " + returnClass.getSimpleName();
+        if (whereClause != null) {
+            whereClause = whereClause.trim();
+            if (whereClause.startsWith("WHERE"))
+                whereClause = whereClause.replace("WHERE", "");
+            query += " WHERE " + whereClause;
+        }
+        if (orderBy != null) {
+            orderBy = orderBy.trim();
+            if (orderBy.startsWith("ORDER BY")) {
+                orderBy = orderBy.replace("ORDER BY", "");
+            }
+            query += " ORDER BY " + orderBy;
+        }
         Cursor c = rawQuery(query);
         if (c.moveToFirst()) {
             do {
@@ -255,14 +379,18 @@ public class DbHelper {
                             f.set(add, (byte) c.getInt(c.getColumnIndex(f.getName())));
                         else if (f.getType().getSimpleName().equalsIgnoreCase("double"))
                             f.set(add, c.getDouble(c.getColumnIndex(f.getName())));
-                        else if (f.getType().getSimpleName().equals("LocalDate"))
-                            f.set(add, LocalDate.parse(c.getString(c.getColumnIndex(f.getName()))));
-                        else if (f.getType().getSimpleName().equals("LocalDateTime"))
-                            f.set(add, LocalDateTime.parse(c.getString(c.getColumnIndex(f.getName()))));
-                        else {
-                            if (f.getType().getSimpleName().equals("Byte[]"))
+                        else if (f.getType().getSimpleName().equals("LocalDate")) {
+                            String data = c.getString(c.getColumnIndex(f.getName()));
+                            if (data != null)
+                                f.set(add, LocalDate.parse(data));
+                        } else if (f.getType().getSimpleName().equals("LocalDateTime")) {
+                            String data = c.getString(c.getColumnIndex(f.getName()));
+                            if (data != null)
+                                f.set(add, LocalDateTime.parse(data));
+                        } else {
+                            if (f.getType().getSimpleName().equals("Byte[]")) {
                                 f.set(add, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));
-                            else {
+                            } else {
                                 if (tables.contains(f.getType().getSimpleName())) {
                                     for (Field ff : f.getType().getDeclaredFields()) {
                                         if (ff.isAnnotationPresent(PrimaryKey.class))
@@ -283,6 +411,108 @@ public class DbHelper {
         return _return;
     }
 
+    public <T> int update(T obj) throws IllegalAccessException {
+        Class<?> updateClass = obj.getClass();
+        Field primaryKey = null;
+        if (!tables.contains(updateClass.getSimpleName()))
+            throw new SQLiteException("No such table!");
+        String query = "UPDATE " + updateClass.getSimpleName() + " SET ";
+        for (Field f : updateClass.getDeclaredFields()) {
+            if (f.isAnnotationPresent(PrimaryKey.class)) {
+                primaryKey = f;
+                continue;
+            }
+            if (f.isAnnotationPresent(AutoIncrement.class) || f.isAnnotationPresent(Ignored.class))
+                continue;
+            query += f.getName() + " = ?, ";
+        }
+        query = query.substring(0, query.length() - 2);
+        query += " WHERE ";
+        if (primaryKey != null) {
+            query += primaryKey.getName() + " = ?";
+        } else {
+            throw new SQLiteException("Missing where statement in update!");
+        }
+        SQLiteStatement stmt = db.compileStatement(query);
+        int x = 0;
+        for (Field f : updateClass.getDeclaredFields()) {
+            if (f.isAnnotationPresent(AutoIncrement.class) || f.isAnnotationPresent(Ignored.class) || f.isAnnotationPresent(PrimaryKey.class))
+                continue;
+            x++;
+            boolean isAccessible = f.isAccessible();
+            f.setAccessible(true);
+            if (f.getType().getSimpleName().equalsIgnoreCase("boolean"))
+                stmt.bindString(x, (Boolean) f.get(obj) ? "1" : "0");
+            else if (f.getType().getSimpleName().equals("byte[]"))
+                stmt.bindBlob(x, (byte[]) f.get(obj));
+            else if (f.getType().getSimpleName().equals("Byte[]")) {
+                byte[] bb = toPrimitives((Byte[]) f.get(obj));
+                if (bb != null)
+                    stmt.bindBlob(x, bb);
+                else
+                    stmt.bindNull(x);
+            } else {
+                if (tables.contains(f.getType().getSimpleName())) {
+                    for (Field ff : f.getType().getDeclaredFields()) {
+                        if (ff.isAnnotationPresent(PrimaryKey.class)) {
+                            boolean isAccessible2 = ff.isAccessible();
+                            ff.setAccessible(true);
+                            if (f.get(obj) != null) {
+                                if (!checkExistance(f.get(obj)))
+                                    throw new SQLException("Row don't exist in such table");
+                                stmt.bindString(x, ff.get(f.get(obj)).toString());
+                            } else {
+                                stmt.bindString(x, "null");
+                            }
+                            ff.setAccessible(isAccessible2);
+                            break;
+                        }
+                    }
+                } else {
+                    if (f.get(obj) != null)
+                        stmt.bindString(x, f.get(obj).toString());
+                    else
+                        stmt.bindNull(x);
+                }
+            }
+            f.setAccessible(isAccessible);
+        }
+        boolean isAccessible = primaryKey.isAccessible();
+        primaryKey.setAccessible(true);
+        x++;
+        if (primaryKey.get(obj) != null)
+            stmt.bindString(x, primaryKey.get(obj).toString());
+        else {
+            primaryKey.setAccessible(isAccessible);
+            throw new SQLiteException("PrimaryKey is null");
+        }
+        primaryKey.setAccessible(isAccessible);
+        return stmt.executeUpdateDelete();
+    }
+
+    public <T> int delete(T obj) throws IllegalAccessException {
+        Class<?> deleteClass = obj.getClass();
+        if (!tables.contains(deleteClass.getSimpleName()))
+            throw new SQLiteException("No such table");
+        String query = null;
+        Field primaryKey = null;
+        for (Field f : deleteClass.getDeclaredFields()) {
+            if (f.isAnnotationPresent(PrimaryKey.class)) {
+                primaryKey = f;
+                query = "DELETE FROM " + deleteClass.getSimpleName() + " WHERE " + f.getName() + " = ?";
+                break;
+            }
+        }
+        if (query == null)
+            throw new SQLiteException("No PrimaryKey");
+        SQLiteStatement stmt = db.compileStatement(query);
+        boolean isAccessible = primaryKey.isAccessible();
+        primaryKey.setAccessible(true);
+        stmt.bindString(1, primaryKey.get(obj).toString());
+        primaryKey.setAccessible(isAccessible);
+        return stmt.executeUpdateDelete();
+    }
+
     private Object getObject(int index, Cursor c) {
         int type = c.getType(index);
         switch (type) {
@@ -301,7 +531,8 @@ public class DbHelper {
         }
     }
 
-    private boolean checkExistance(Class<?> checkedClass, Object obj) throws IllegalAccessException {
+    private boolean checkExistance(Object obj) throws IllegalAccessException {
+        Class<?> checkedClass = obj.getClass();
         if (!tables.contains(checkedClass.getSimpleName()))
             return false;
         for (Field f : checkedClass.getDeclaredFields()) {
@@ -340,18 +571,24 @@ public class DbHelper {
 
     private byte[] toPrimitives(Byte[] oBytes)
     {
-        byte[] bytes = new byte[oBytes.length];
-        for(int i = 0; i < oBytes.length; i++){
-            bytes[i] = oBytes[i];
+        if (oBytes != null) {
+            byte[] bytes = new byte[oBytes.length];
+            for (int i = 0; i < oBytes.length; i++) {
+                bytes[i] = oBytes[i];
+            }
+            return bytes;
         }
-        return bytes;
+        return null;
     }
 
     Byte[] toObjects(byte[] bytesPrim) {
-        Byte[] bytes = new Byte[bytesPrim.length];
-        int i = 0;
-        for (byte b : bytesPrim) bytes[i++] = b;
-        return bytes;
+        if (bytesPrim != null) {
+            Byte[] bytes = new Byte[bytesPrim.length];
+            int i = 0;
+            for (byte b : bytesPrim) bytes[i++] = b;
+            return bytes;
+        }
+        return null;
     }
 
     public void close() {
