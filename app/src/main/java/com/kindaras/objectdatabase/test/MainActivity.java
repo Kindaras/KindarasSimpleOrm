@@ -12,6 +12,7 @@ import com.kindaras.objectdatabase.R;
 import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -22,7 +23,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         TestObj t = new TestObj();
-        t.setId(0);
         t.setString("prova");
         t.setInteger(10);
         t.setaBoolean(true);
@@ -35,11 +35,21 @@ public class MainActivity extends Activity {
         tt.setTest("yay");
         tt.setX(1.9878f);
         t.setTest(tt);
+        TestObj t2;
         DbHelper db = DbHelper.getDb(this, "test.db", 1);
         try {
-            db.insertInto(tt.getClass(), tt);
-            db.insertInto(t.getClass(), t);
-            List<TestObj> list = db.getList(TestObj.class);
+            //db.insertInto(tt);
+            //db.multiInsert(new TestObj[] {t,t2});
+            List<TestObj> list = db.getList(TestObj.class, null, null);
+            t = db.getByPrimaryKey(TestObj.class, 1);
+            t2 = db.getByPrimaryKey(TestObj.class, 2);
+            t.setaBoolean(true);
+            t.setInteger(10);
+            t.setbArray(new Byte[]{(byte)0xbb});
+            int update = db.update(t);
+            int delete = db.delete(t2);
+            List<TestObj> list1 = db.getList(TestObj.class, null, null);
+            db.close();
             Log.e("", "");
         } catch (Exception e) {
             Log.e("Exception", e.getMessage());
