@@ -1,5 +1,5 @@
 plugins {
-    id 'com.android.application'
+    id 'com.android.library'
 }
 
 android {
@@ -7,7 +7,7 @@ android {
     buildToolsVersion "32.0.0"
 
     defaultConfig {
-        applicationId "com.kindaras.objectdatabase"
+        //applicationId "com.kindaras.objectdatabase"
         minSdkVersion 27
         targetSdkVersion 31
         versionCode 1
@@ -23,14 +23,14 @@ android {
         }
     }
 
-    /*libraryVariants.all { variant ->
+    libraryVariants.all { variant ->
         variant.outputs.each { output ->
             def outputFile = output.outputFile
             if (outputFile != null) {
                 output.outputFileName = "ObjectDatabase.aar"
             }
         }
-    }*/
+    }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
