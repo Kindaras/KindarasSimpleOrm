@@ -331,7 +331,7 @@ public class DbHelper {
                             if (tables.contains(f.getType().getSimpleName())) {
                                 for (Field ff : f.getType().getDeclaredFields()) {
                                     if (ff.isAnnotationPresent(PrimaryKey.class))
-                                        f.set(_return, getByPrimaryKey(f.getType(), getObject(c.getColumnIndex(ff.getName()), c)));
+                                        f.set(_return, getByPrimaryKey(f.getType(), getObject(c.getColumnIndex(f.getName()), c)));
                                 }
                             } else
                                 f.set(_return, getObject(c.getColumnIndex(f.getName()), c));
@@ -399,7 +399,7 @@ public class DbHelper {
                                 if (tables.contains(f.getType().getSimpleName())) {
                                     for (Field ff : f.getType().getDeclaredFields()) {
                                         if (ff.isAnnotationPresent(PrimaryKey.class))
-                                            f.set(add, getByPrimaryKey(f.getType(), getObject(c.getColumnIndex(ff.getName()), c)));
+                                            f.set(add, getByPrimaryKey(f.getType(), getObject(c.getColumnIndex(f.getName()), c)));
                                     }
                                 } else
                                     f.set(add, getObject(c.getColumnIndex(f.getName()), c));
