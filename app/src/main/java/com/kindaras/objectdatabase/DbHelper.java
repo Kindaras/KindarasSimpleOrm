@@ -60,9 +60,14 @@ public class DbHelper {
 
     @Nullable
     public Cursor rawQuery(String query) {
-        if (db.isOpen() && !db.isReadOnly())
-            return db.rawQuery(query, null);
-        else
+        if (db.isOpen() && !db.isReadOnly()) {
+            if (query.startsWith("DELETE")) {
+                db.execSQL(query);
+                return null;
+            } else {
+                return db.rawQuery(query, null);
+            }
+        } else
             return null;
     }
 
@@ -563,8 +568,7 @@ public class DbHelper {
                     c.close();
                     return false;
                 }
-            } else
-                return false;
+            }
         }
         return false;
     }
