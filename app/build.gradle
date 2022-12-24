@@ -12,6 +12,7 @@ android {
         targetSdkVersion 31
         versionCode 1
         versionName "1.0"
+        project.version = versionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -27,7 +28,7 @@ android {
         variant.outputs.each { output ->
             def outputFile = output.outputFile
             if (outputFile != null) {
-                output.outputFileName = "ObjectDatabase.aar"
+                output.outputFileName = "ObjectDatabase-${version}.aar"
             }
         }
     }

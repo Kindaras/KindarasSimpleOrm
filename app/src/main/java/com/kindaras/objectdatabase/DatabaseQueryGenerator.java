@@ -29,6 +29,22 @@ public class DatabaseQueryGenerator {
         return query.toString();
     }
 
+    public static String getAddColumnQuery(Class<?> obj, String field) throws NoSuchFieldException, SQLException {
+        StringBuilder query = new StringBuilder();
+        query.append("ALTER TABLE ");
+        query.append(obj.getSimpleName());
+        query.append(" ADD ");
+        Field f = obj.getField(field);
+        query.append(getCompleteField(f));
+        if (f.getDeclaredAnnotation(PrimaryKey.class) != null)
+            query.append(" PRIMARY KEY NOT NULL");
+        if (f.getDeclaredAnnotation(AutoIncrement.class) != null && (!f.getType().getSimpleName().equals("int") && !f.getType().getSimpleName().equals("Integer")))
+            throw new SQLException("Column not INTEGER can't be AUTOINCREMENT");
+        if (f.getDeclaredAnnotation(AutoIncrement.class) != null && f.getDeclaredAnnotation(PrimaryKey.class) == null)
+            throw new SQLException("Column not PRIMARY KEY can't be AUTOINCREMENT");
+        return query.toString();
+    }
+
     private static String getCompleteField(Field field) {
         return field.getName() + " " + getSqlType(field.getType());
     }
