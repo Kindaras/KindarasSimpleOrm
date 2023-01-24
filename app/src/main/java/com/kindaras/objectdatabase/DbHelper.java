@@ -77,7 +77,7 @@ public class DbHelper {
     @Nullable
     public Cursor rawQuery(String query) {
         if (db.isOpen() && !db.isReadOnly()) {
-            if (query.startsWith("DELETE")) {
+            if (query.startsWith("DELETE") || query.startsWith("INSERT")) {
                 db.execSQL(query);
                 return null;
             } else {
