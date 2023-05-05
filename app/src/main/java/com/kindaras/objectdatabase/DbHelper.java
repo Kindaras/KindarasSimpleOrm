@@ -41,23 +41,29 @@ public class DbHelper {
         open(context, name, version);
         dbVersion = version;
         dbHelper = this;
-        oldDbVersion = rawQuery("PRAGMA schema_version").getInt(0);
+        oldDbVersion = dbUtil.version;
         Cursor c = rawQuery("select name from sqlite_master where type = 'table' and name not like 'sqlite_%' and name != 'android_metadata'");
-        if (c.moveToFirst()) {
-            do {
-                String table_name = c.getString(c.getColumnIndex("name"));
-                tables.add(table_name);
-                if (oldDbVersion != dbVersion) {
-                    Cursor c1 = rawQuery("PRAGMA table_info(" + table_name + ")");
-                    List<String> columns = new ArrayList<>();
-                    if (c1.moveToFirst()) {
-                        do {
-                            columns.add(c1.getString(c.getColumnIndex("name")));
-                        } while (c1.moveToNext());
+        if (c != null) {
+            if (c.moveToFirst()) {
+                do {
+                    String table_name = c.getString(c.getColumnIndex("name"));
+                    tables.add(table_name);
+                    if (oldDbVersion != dbVersion) {
+                        Cursor c1 = rawQuery("PRAGMA table_info(" + table_name + ")");
+                        List<String> columns = new ArrayList<>();
+                        if (c1 != null) {
+                            if (c1.moveToFirst()) {
+                                do {
+                                    columns.add(c1.getString(1));
+                                } while (c1.moveToNext());
+                            }
+                            c1.close();
+                        }
+                        structure.put(table_name, columns);
                     }
-                    structure.put(table_name, columns);
-                }
-            } while (c.moveToNext());
+                } while (c.moveToNext());
+            }
+            c.close();
         }
     }
 
@@ -102,8 +108,8 @@ public class DbHelper {
                     !t.equalsIgnoreCase("boolean") &&
                     !t.equalsIgnoreCase("byte") &&
                     !t.equalsIgnoreCase("byte[]")) {
-                if (!tables.contains(t))
-                    throw new ObjectDatabaseException(new java.sql.SQLException("Can't point to a table that don't exist"));
+                /*if (!tables.contains(t))
+                    throw new ObjectDatabaseException(new java.sql.SQLException("Can't point to a table that don't exist"));*/
                 for (Field ff : f.getType().getDeclaredFields()) {
                     if (ff.isAnnotationPresent(PrimaryKey.class)) {
                         ok = true;
@@ -135,7 +141,8 @@ public class DbHelper {
                 for (String field : fields) {
                     if (!oldFields.contains(field)) {
                         try {
-                            db.execSQL(DatabaseQueryGenerator.getAddColumnQuery(insertedClass, field));
+                            String query = DatabaseQueryGenerator.getAddColumnQuery(insertedClass, field);
+                            db.execSQL(query);
                             structure.get(insertedClass.getSimpleName()).add(field);
                         } catch (NoSuchFieldException | java.sql.SQLException e) {
                             throw new ObjectDatabaseException(e);

@@ -7,8 +7,10 @@ import android.database.sqlite.SQLiteOpenHelper;
 import androidx.annotation.Nullable;
 
 class Database extends SQLiteOpenHelper {
+    public int version;
     protected Database(@Nullable Context context, String name, int version) {
         super(context, name, null, version);
+        this.version = version;
     }
 
     @Override
@@ -17,7 +19,8 @@ class Database extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
-
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
+        if (newVersion > oldVersion)
+            version = oldVersion;
     }
 }

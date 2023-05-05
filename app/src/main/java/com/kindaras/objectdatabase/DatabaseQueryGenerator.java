@@ -34,7 +34,7 @@ public class DatabaseQueryGenerator {
         query.append("ALTER TABLE ");
         query.append(obj.getSimpleName());
         query.append(" ADD ");
-        Field f = obj.getField(field);
+        Field f = obj.getDeclaredField(field);
         query.append(getCompleteField(f));
         if (f.getDeclaredAnnotation(PrimaryKey.class) != null)
             query.append(" PRIMARY KEY NOT NULL");

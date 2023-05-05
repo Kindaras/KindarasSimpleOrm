@@ -22,7 +22,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        TestObj t = new TestObj();
+        /*TestObj t = new TestObj();
         t.setString("prova");
         t.setInteger(10);
         t.setaBoolean(true);
@@ -35,9 +35,11 @@ public class MainActivity extends Activity {
         tt.setTest("yay");
         tt.setX(1.9878f);
         t.setTest(tt);
-        TestObj t2;
-        DbHelper db = DbHelper.getDb(this, "test.db", 1);
-        try {
+        TestObj t2;*/
+        DbHelper db = DbHelper.getDb(this, "test.db", 9);
+        db.createTable(TestObj.class);
+        db.createTable(Test2.class);
+        /*try {
             //db.insertInto(tt);
             //db.multiInsert(new TestObj[] {t,t2});
             List<TestObj> list = db.getList(TestObj.class, null, null);
@@ -53,6 +55,6 @@ public class MainActivity extends Activity {
             Log.e("", "");
         } catch (Exception e) {
             Log.e("Exception", e.getMessage());
-        }
+        }*/
     }
 }
