@@ -20,6 +20,7 @@ public class TestObj {
     private Test2 test;
     private LocalDate date;
     private LocalDateTime dateTime;
+    private boolean added;
 
     public int getId() {
         return id;
@@ -91,5 +92,13 @@ public class TestObj {
 
     public void setDateTime(LocalDateTime dateTime) {
         this.dateTime = dateTime;
+    }
+
+    public boolean isAdded() {
+        return added;
+    }
+
+    public void setAdded(boolean added) {
+        this.added = added;
     }
 }
