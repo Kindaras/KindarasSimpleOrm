@@ -49,12 +49,12 @@ public class DbHelper {
                     String table_name = c.getString(c.getColumnIndex("name"));
                     tables.add(table_name);
                     if (oldDbVersion != dbVersion) {
-                        Cursor c1 = rawQuery("PRAGMA table_info(" + table_name + ")");
+                        Cursor c1 = rawQuery("select name from pragma_table_info('" + table_name + "')");
                         List<String> columns = new ArrayList<>();
                         if (c1 != null) {
                             if (c1.moveToFirst()) {
                                 do {
-                                    columns.add(c1.getString(1));
+                                    columns.add(c1.getString(c.getColumnIndex("name")));
                                 } while (c1.moveToNext());
                             }
                             c1.close();

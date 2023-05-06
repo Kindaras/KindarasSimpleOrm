@@ -10,8 +10,8 @@ android {
         //applicationId "com.kindaras.objectdatabase"
         minSdkVersion 27
         targetSdkVersion 31
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
         project.version = versionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
