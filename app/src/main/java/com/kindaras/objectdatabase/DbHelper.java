@@ -302,7 +302,7 @@ public class DbHelper {
                                         ff.setAccessible(true);
                                         if (f.get(obj) != null) {
                                             if (!checkExistance(f.get(obj)))
-                                                throw new SQLException("Row don't exist in such table");
+                                                insertInto(f.get(obj));
                                             stmt.bindString(x, ff.get(f.get(obj)).toString());
                                         } else {
                                             stmt.bindString(x, "null");
