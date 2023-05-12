@@ -5,9 +5,9 @@ import com.kindaras.objectdatabase.PrimaryKey;
 
 public class Test2 {
     @PrimaryKey
+    @AutoIncrement
     private int id;
     private String test;
-    private float x;
 
     public int getId() {
         return id;
@@ -23,13 +23,5 @@ public class Test2 {
 
     public void setTest(String test) {
         this.test = test;
-    }
-
-    public float getX() {
-        return x;
-    }
-
-    public void setX(float x) {
-        this.x = x;
     }
 }
