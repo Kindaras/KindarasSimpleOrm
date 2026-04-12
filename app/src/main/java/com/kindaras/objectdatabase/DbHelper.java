@@ -97,6 +97,9 @@ public class DbHelper {
         boolean ok = false;
         List<String> fields = new ArrayList<>();
         for (Field f : insertedClass.getDeclaredFields()) {
+            if (f.getType().isAnnotationPresent(Ignored.class)) {
+                continue;
+            }
             String t = f.getType().getSimpleName();
             if (!t.equals("String") &&
                     !t.equals("int") &&
@@ -108,8 +111,6 @@ public class DbHelper {
                     !t.equalsIgnoreCase("boolean") &&
                     !t.equalsIgnoreCase("byte") &&
                     !t.equalsIgnoreCase("byte[]")) {
-                /*if (!tables.contains(t))
-                    throw new ObjectDatabaseException(new java.sql.SQLException("Can't point to a table that don't exist"));*/
                 for (Field ff : f.getType().getDeclaredFields()) {
                     if (ff.isAnnotationPresent(PrimaryKey.class)) {
                         ok = true;
