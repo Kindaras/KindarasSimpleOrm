@@ -51,30 +51,16 @@ public class DatabaseQueryGenerator {
 
     private static String getSqlType(Class<?> type) {
         Log.e("return", type.getSimpleName());
-        if (type.isEnum()) {
-            if (type.getMethods()[0].getReturnType().equals(String.class))
-                return "text";
-            else if (type.getMethods()[0].getReturnType().equals(Integer.class))
-                return "integer";
-            else if (type.getMethods()[0].getReturnType().getSimpleName().equals("int"))
-                return "integer";
-            else if (type.getMethods()[0].getReturnType().getSimpleName().equalsIgnoreCase("byte"))
-                return "integer";
-            else if (type.getMethods()[0].getReturnType().getSimpleName().equalsIgnoreCase("byte[]"))
-                return "blob";
-        } else {
-            if (!type.isPrimitive()) {
-                for (Field f : type.getDeclaredFields()) {
-                    if (f.isAnnotationPresent(PrimaryKey.class)) {
-                        return getSqlTypeText(f.getType());
-                    }
+        if (type.isEnum())
+            return "text";
+        if (!type.isPrimitive()) {
+            for (Field f : type.getDeclaredFields()) {
+                if (f.isAnnotationPresent(PrimaryKey.class)) {
+                    return getSqlTypeText(f.getType());
                 }
-                return getSqlTypeText(type);
-            } else {
-                return getSqlTypeText(type);
             }
         }
-        return null;
+        return getSqlTypeText(type);
     }
 
     private static String getSqlTypeText(Class<?> type) {
