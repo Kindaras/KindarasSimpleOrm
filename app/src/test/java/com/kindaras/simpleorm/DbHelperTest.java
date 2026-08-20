@@ -1,12 +1,9 @@
-package com.kindaras.objectdatabase;
+package com.kindaras.simpleorm;
 
 import android.app.Application;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteException;
-
-import com.kindaras.objectdatabase.test.Test2;
-import com.kindaras.objectdatabase.test.TestObj;
 
 import org.junit.After;
 import org.junit.Before;
@@ -461,24 +458,24 @@ public class DbHelperTest {
     }
 
     @Test
-    public void testModels_nestedInsertAndIgnoredField() {
-        Test2 nested = new Test2();
-        nested.setTest("child");
+    public void privateFields_nestedInsertAndIgnoredField() {
+        NestedRow nested = new NestedRow();
+        nested.setLabel("child");
         nested.setIgnored(Locale.CANADA);
-        TestObj parent = new TestObj();
-        parent.setString("parent");
-        parent.setTest(nested);
+        EncapsulatedParent parent = new EncapsulatedParent();
+        parent.setName("parent");
+        parent.setNested(nested);
 
-        db.createTable(Test2.class);
-        db.createTable(TestObj.class);
+        db.createTable(NestedRow.class);
+        db.createTable(EncapsulatedParent.class);
         db.insertInto(parent);
 
-        List<TestObj> loaded = db.getList(TestObj.class, null, null);
+        List<EncapsulatedParent> loaded = db.getList(EncapsulatedParent.class, null, null);
         assertEquals(1, loaded.size());
-        assertEquals("parent", loaded.get(0).getString());
-        assertNotNull(loaded.get(0).getTest());
-        assertEquals("child", loaded.get(0).getTest().getTest());
-        assertNull(loaded.get(0).getTest().getIgnored());
+        assertEquals("parent", loaded.get(0).getName());
+        assertNotNull(loaded.get(0).getNested());
+        assertEquals("child", loaded.get(0).getNested().getLabel());
+        assertNull(loaded.get(0).getNested().getIgnored());
         assertNotEquals(0, loaded.get(0).getId());
     }
 
@@ -561,5 +558,70 @@ public class DbHelperTest {
 
     public static class NoPk {
         public String name;
+    }
+
+    public static class NestedRow {
+        @PrimaryKey
+        @AutoIncrement
+        private int id;
+        private String label;
+        @Ignored
+        private Locale ignored;
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public void setLabel(String label) {
+            this.label = label;
+        }
+
+        public Locale getIgnored() {
+            return ignored;
+        }
+
+        public void setIgnored(Locale ignored) {
+            this.ignored = ignored;
+        }
+    }
+
+    public static class EncapsulatedParent {
+        @PrimaryKey
+        @AutoIncrement
+        private int id;
+        private String name;
+        private NestedRow nested;
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public NestedRow getNested() {
+            return nested;
+        }
+
+        public void setNested(NestedRow nested) {
+            this.nested = nested;
+        }
     }
 }

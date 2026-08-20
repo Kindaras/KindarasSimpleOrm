@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    namespace 'com.kindaras.objectdatabase'
-    compileSdk = 36
+    namespace 'com.kindaras.simpleorm'
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 4
         versionName = "1.2.1"
     }
@@ -31,9 +31,9 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.13.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.appcompat:appcompat:1.8.0'
+    implementation 'com.google.android.material:material:1.14.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.2'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.16.1'
 }
@@ -42,7 +42,7 @@ afterEvaluate {
     tasks.named("bundleReleaseAar") {
         doLast {
             def file = file("$buildDir/outputs/aar/app-release.aar")
-            def newName = "ObjectDatabase-${android.defaultConfig.versionName}.aar"
+            def newName = "KindarasSimpleOrm-${android.defaultConfig.versionName}.aar"
             file.renameTo(new File(file.parent, newName))
         }
     }

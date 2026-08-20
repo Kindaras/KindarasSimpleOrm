@@ -1,4 +1,4 @@
-package com.kindaras.objectdatabase;
+package com.kindaras.simpleorm;
 
 import org.junit.Test;
 
