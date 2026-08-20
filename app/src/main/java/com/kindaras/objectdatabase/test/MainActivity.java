@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends Activity {
 
@@ -24,14 +25,11 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         Test2 t2 = new Test2();
         t2.setTest("test");
-        TestObj t = new TestObj();
-        t.setString("t");
-        t.setTest(t2);
-        DbHelper db = DbHelper.getDb(this, "test.db", 9);
-        db.createTable(TestObj.class);
+        t2.setIgnored(Locale.CANADA);
+        DbHelper db = DbHelper.getDb(this, "test.db", 1);
         db.createTable(Test2.class);
-        db.insertInto(t);
-        List<TestObj> l = db.getList(TestObj.class, null, null);
+        db.insertInto(t2);
+        List<Test2> l = db.getList(Test2.class, null, null);
         Log.e("a", "a");
     }
 }
