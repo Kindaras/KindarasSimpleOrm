@@ -101,7 +101,8 @@ public class DbHelper {
                 continue;
             }
             String t = f.getType().getSimpleName();
-            if (!t.equals("String") &&
+            if (!f.getType().isEnum() &&
+                    !t.equals("String") &&
                     !t.equals("int") &&
                     !t.equals("Integer") &&
                     !t.equals("LocalDate") &&
@@ -200,6 +201,8 @@ public class DbHelper {
                                     stmt.bindBlob(x, bb);
                                 else
                                     stmt.bindNull(x);
+                            } else if (f.getType().isEnum()) {
+                                bindEnum(stmt, x, f.get(obj));
                             } else {
                                 if (tables.contains(f.getType().getSimpleName())) {
                                     for (Field ff : f.getType().getDeclaredFields()) {
@@ -295,6 +298,8 @@ public class DbHelper {
                                 stmt.bindBlob(x, bb);
                             else
                                 stmt.bindNull(x);
+                        } else if (f.getType().isEnum()) {
+                            bindEnum(stmt, x, f.get(obj));
                         } else {
                             if (tables.contains(f.getType().getSimpleName())) {
                                 for (Field ff : f.getType().getDeclaredFields()) {
@@ -401,6 +406,8 @@ public class DbHelper {
                             String data = c.getString(c.getColumnIndex(f.getName()));
                             if (data != null)
                                 f.set(_return, LocalDateTime.parse(data));
+                        } else if (f.getType().isEnum()) {
+                            f.set(_return, readEnum(f.getType(), c.getString(c.getColumnIndex(f.getName()))));
                         } else {
                             if (f.getType().getSimpleName().equals("Byte[]"))
                                 f.set(_return, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));
@@ -473,6 +480,8 @@ public class DbHelper {
                                 String data = c.getString(c.getColumnIndex(f.getName()));
                                 if (data != null)
                                     f.set(add, LocalDateTime.parse(data));
+                            } else if (f.getType().isEnum()) {
+                                f.set(add, readEnum(f.getType(), c.getString(c.getColumnIndex(f.getName()))));
                             } else {
                                 if (f.getType().getSimpleName().equals("Byte[]")) {
                                     f.set(add, toObjects((byte[]) getObject(c.getColumnIndex(f.getName()), c)));
@@ -541,6 +550,8 @@ public class DbHelper {
                         stmt.bindBlob(x, bb);
                     else
                         stmt.bindNull(x);
+                } else if (f.getType().isEnum()) {
+                    bindEnum(stmt, x, f.get(obj));
                 } else {
                     if (tables.contains(f.getType().getSimpleName())) {
                         for (Field ff : f.getType().getDeclaredFields()) {
@@ -608,6 +619,20 @@ public class DbHelper {
         }
         primaryKey.setAccessible(isAccessible);
         return stmt.executeUpdateDelete();
+    }
+
+    private void bindEnum(SQLiteStatement stmt, int index, Object value) {
+        if (value != null)
+            stmt.bindString(index, ((Enum<?>) value).name());
+        else
+            stmt.bindNull(index);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object readEnum(Class<?> type, String name) {
+        if (name == null || name.isEmpty())
+            return null;
+        return Enum.valueOf((Class<Enum>) type, name);
     }
 
     private Object getObject(int index, Cursor c) {

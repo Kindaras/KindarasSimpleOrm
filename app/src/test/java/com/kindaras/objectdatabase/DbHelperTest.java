@@ -249,6 +249,32 @@ public class DbHelperTest {
     }
 
     @Test
+    public void enumField_roundtripsByName() {
+        WithEnum row = new WithEnum();
+        row.priority = Priority.HIGH;
+
+        db.insertInto(row);
+        WithEnum loaded = db.getByPrimaryKey(WithEnum.class, row.id);
+
+        assertEquals(Priority.HIGH, loaded.priority);
+        assertEquals(Priority.HIGH, db.getList(WithEnum.class, null, null).get(0).priority);
+
+        row.priority = Priority.LOW;
+        assertEquals(1, db.update(row));
+        assertEquals(Priority.LOW, db.getByPrimaryKey(WithEnum.class, row.id).priority);
+    }
+
+    @Test
+    public void enumField_null_roundtripsAsNull() {
+        WithEnum row = new WithEnum();
+        row.priority = null;
+
+        db.insertInto(row);
+
+        assertNull(db.getByPrimaryKey(WithEnum.class, row.id).priority);
+    }
+
+    @Test
     public void stringPrimaryKey_roundtrips() {
         StringKey row = new StringKey();
         row.code = "IT";
@@ -476,6 +502,18 @@ public class DbHelperTest {
         public String name;
         @Ignored
         public String secret;
+    }
+
+    public enum Priority {
+        LOW,
+        HIGH
+    }
+
+    public static class WithEnum {
+        @PrimaryKey
+        @AutoIncrement
+        public int id;
+        public Priority priority;
     }
 
     public static class TypedRow {

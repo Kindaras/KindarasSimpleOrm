@@ -7,8 +7,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class DatabaseQueryGeneratorTest {
@@ -67,8 +65,10 @@ public class DatabaseQueryGeneratorTest {
     public void getTableQueryByClass_mapsEnumToText() throws SQLException {
         String query = DatabaseQueryGenerator.getTableQueryByClass(WithEnum.class);
 
-        assertTrue(query, query.contains("priority text"));
-        assertFalse(query, query.contains("priority null"));
+        assertEquals(
+                "CREATE TABLE IF NOT EXISTS WithEnum (id integer PRIMARY KEY NOT NULL,priority text);",
+                query
+        );
     }
 
     @Test
