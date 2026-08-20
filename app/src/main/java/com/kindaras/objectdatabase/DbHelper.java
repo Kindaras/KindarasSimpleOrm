@@ -97,7 +97,7 @@ public class DbHelper {
         boolean ok = false;
         List<String> fields = new ArrayList<>();
         for (Field f : insertedClass.getDeclaredFields()) {
-            if (f.getType().isAnnotationPresent(Ignored.class)) {
+            if (f.isAnnotationPresent(Ignored.class)) {
                 continue;
             }
             String t = f.getType().getSimpleName();
@@ -140,7 +140,7 @@ public class DbHelper {
             if (dbVersion > oldDbVersion) {
                 List<String> oldFields = structure.get(insertedClass.getSimpleName());
                 for (String field : fields) {
-                    if (!oldFields.contains(field)) {
+                    if (oldFields != null && !oldFields.contains(field)) {
                         try {
                             String query = DatabaseQueryGenerator.getAddColumnQuery(insertedClass, field);
                             db.execSQL(query);
