@@ -1,8 +1,10 @@
 # KindarasSimpleOrm
 
-A **very simple** ORM for **Android SQLite**. It only covers the basic operations you need for **small databases**: map a Java class to a table, persist objects, and run CRUD. There are no DAOs, no query builders, and no advanced ORM features.
+A **very simple** ORM for **Android SQLite**. It covers the basic operations needed for **small databases**: map a Java class to a table, persist objects, run CRUD and manage simple foreign keys. There are no query builders, and no advanced ORM features.
 
-Each class becomes a table (class name = table name). Each field becomes a column. That is the whole mapping model.
+The class becomes the table (class name = table name) with the class fields as the columns.
+
+Has a simple version management system to apply changes in the structure with database version change.
 
 Current version: **1.2.1** · minSdk **29** · Java **11**
 
